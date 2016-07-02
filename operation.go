@@ -11,6 +11,7 @@ type Operation struct {
 	httpMethod  string
 	httpPath    string
 	sendData    []byte
+	queryData   string
 	responsePtr interface{}
 }
 
@@ -54,6 +55,17 @@ func (o *Operation) WithSendDataByteArray(d []byte) *Operation {
 }
 func (o *Operation) WithSendDataURLValues(d url.Values) *Operation {
 	o.sendData = []byte(d.Encode())
+	return o
+}
+
+func (o *Operation) WithQueryDataString(d string) *Operation {
+	//o.queryData = url.QueryEscape(d)
+	o.queryData = d
+	return o
+}
+
+func (o *Operation) WithQueryDataURLValues(d url.Values) *Operation {
+	o.queryData = d.Encode()
 	return o
 }
 

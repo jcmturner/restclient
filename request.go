@@ -49,6 +49,7 @@ func BuildRequest(c *Config, o *Operation) (r *Request, err error) {
 	default:
 		method = "GET"
 	}
+	//Set the post data
 	HTTPReq, err := http.NewRequest(method, "", bytes.NewBuffer(o.sendData))
 	if err != nil {
 		return
@@ -57,6 +58,7 @@ func BuildRequest(c *Config, o *Operation) (r *Request, err error) {
 	if err != nil {
 		return
 	}
+	HTTPReq.URL.RawQuery = o.queryData
 	HTTPReq.Close = true
 	if c.UserId != nil {
 		if c.Password == nil {
