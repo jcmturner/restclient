@@ -13,7 +13,7 @@ type RequestBuilder interface {
 	Process() error
 }
 
-//The REST API request
+// A Request encapsulates the Config (how to connect to the ReST service) with the Operation (what to request)
 type Request struct {
 	Config       *Config
 	Operation    *Operation
@@ -22,6 +22,7 @@ type Request struct {
 	StatusCode   int
 }
 
+// Build a Request and make it ready to send to the ReST service
 func BuildRequest(c *Config, o *Operation) (r *Request, err error) {
 	// Set path to root if empty and add root slash to path is missing from the start
 	p := o.httpPath
@@ -76,6 +77,7 @@ func BuildRequest(c *Config, o *Operation) (r *Request, err error) {
 	return
 }
 
+// Send the request to the ReST service and marshal any response data into the struct defined in the Operation.
 func Send(r *Request) (httpCode *int, err error) {
 	r.HTTPResponse, err = r.Config.HTTPClient.Do(r.HTTPRequest)
 	if err != nil {

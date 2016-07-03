@@ -8,6 +8,7 @@ import (
 	"net/http"
 )
 
+// A Config specifies the details needed to connect to a ReST service
 type Config struct {
 	UserId      *string
 	Password    *string
@@ -16,27 +17,33 @@ type Config struct {
 	HTTPClient  *http.Client
 }
 
+// Create new, blank ReST client config
 func NewConfig() *Config {
 	return &Config{
 		HTTPClient: http.DefaultClient,
 	}
 }
 
+// Add a user ID to the config for basic authentication to the ReST service
 func (c *Config) WithUserId(u string) *Config {
 	c.UserId = &u
 	return c
 }
 
+// Add a password to the config for basic authentication to the ReST service
 func (c *Config) WithPassword(p string) *Config {
 	c.Password = &p
 	return c
 }
 
+//Specify the URL endpoint of the ReST service in the form http(s)://hostname:port
 func (c *Config) WithEndPoint(e string) *Config {
 	c.EndPoint = &e
 	return c
 }
 
+// Add a trusted x509 certificate to the configuration.
+// If the ReST service implements TLS/SSL then certificates signed by this CA certificate will be trusted.
 func (c *Config) WithCACert(cert *x509.Certificate) *Config {
 	// Set up our own certificate pool
 	if len(cert.Raw) == 0 {
@@ -52,6 +59,8 @@ func (c *Config) WithCACert(cert *x509.Certificate) *Config {
 	return c
 }
 
+// Add a trusted x509 certificate to the configuration by specifying a path to a PEM format certificate file.
+// If the ReST service implements TLS/SSL then certificates signed by this CA certificate will be trusted.
 func (c *Config) WithCAFilePath(caFilePath string) *Config {
 	// Set up our own certificate pool
 	c.TrustCACert = &caFilePath
@@ -74,11 +83,19 @@ func (c *Config) WithCAFilePath(caFilePath string) *Config {
 	return c
 }
 
+//Override with a specific http.Client to be used for the connection to the ReST service.
 func (c *Config) WithHTTPClient(client http.Client) *Config {
 	c.HTTPClient = &client
 	return c
 }
 
+// Create a config by loading from a configuration file containing JSON of the format:
+// {
+//    "EndPoint": "https://somehost:8080",
+//    "UserId": "userA",
+//    "Password": "pa55word",
+//    "TrustCACert": "/path/to/trusted/cert.pem"
+//  }
 func Load(cfgPath string) *Config {
 	j, err := ioutil.ReadFile(cfgPath)
 	if err != nil {

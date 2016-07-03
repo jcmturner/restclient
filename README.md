@@ -88,9 +88,8 @@ httpcode, err := restclient.Send(req)
 Any response will be marshalled into the response target struct that you provided to the operation.
 
 ## Example use
-To see an example of this library being used see: [https://github.com/jcmturner/aws-cli-wrapper]
+To see an example of this library being used see: https://github.com/jcmturner/aws-cli-wrapper
 
 ## Improvements needed...
 - Logging
 - Tests for query string
-- Go doc comments
