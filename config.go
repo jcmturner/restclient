@@ -38,6 +38,7 @@ func (c *Config) WithPassword(p string) *Config {
 
 //Specify the URL endpoint of the ReST service in the form http(s)://hostname:port
 func (c *Config) WithEndPoint(e string) *Config {
+	//TODO put in validation that is starts either http:// or https://
 	c.EndPoint = &e
 	return c
 }
@@ -89,13 +90,6 @@ func (c *Config) WithHTTPClient(client http.Client) *Config {
 	return c
 }
 
-// Create a config by loading from a configuration file containing JSON of the format:
-// {
-//    "EndPoint": "https://somehost:8080",
-//    "UserId": "userA",
-//    "Password": "pa55word",
-//    "TrustCACert": "/path/to/trusted/cert.pem"
-//  }
 func Load(cfgPath string) *Config {
 	j, err := ioutil.ReadFile(cfgPath)
 	if err != nil {

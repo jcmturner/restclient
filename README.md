@@ -34,7 +34,7 @@ A configuration can also be loaded from a file containing JSON formatted data. F
 ```
 It can be loaded with:
 ```
-c.Load("/path/to/config.json")
+c := restclient.Load("/path/to/config.json")
 ```
 
 ### Operation
@@ -57,9 +57,9 @@ o.WithQueryDataURLValues(url.Values{})
 ```
 If posting data in the call is required it can be provided as either a string, byte array or url.Values with these methods.
 ```
-o.WithSendDataString("somedatatosend")
-o.WithSendDataByteArray([]byte{})
-o.WithSendDataURLValues(url.Values{})
+o.WithBodyDataString("somedatatosend")
+o.WithBodyDataByteArray([]byte{})
+o.WithBodyDataURLValues(url.Values{})
 ```
 If the call returns data you want to retrieve, define a struct that a JSON response will parse into. Create an instance of this struct and provide the pointer to the Operation instance:
 ```

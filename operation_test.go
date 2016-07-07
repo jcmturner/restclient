@@ -53,14 +53,14 @@ func TestOperation_WithResponseTarget(t *testing.T) {
 func TestOperation_WithSendDataByteArray(t *testing.T) {
 	var d = []byte{0, 1, 2, 3}
 	o := NewGetOperation()
-	o.WithSendDataByteArray(d)
+	o.WithBodyDataByteArray(d)
 	assert.Equal(t, d, o.sendData, "Send data not set correctly")
 }
 
 func TestOperation_WithSendDataString(t *testing.T) {
 	s := "test string"
 	o := NewGetOperation()
-	o.WithSendDataString(s)
+	o.WithBodyDataString(s)
 	assert.Equal(t, s, string(o.sendData), "Send data not set correctly")
 }
 
@@ -69,6 +69,6 @@ func TestOperation_WithSendDataURLValues(t *testing.T) {
 	u.Set("key1", "value1")
 	u.Add("key2", "value2")
 	o := NewGetOperation()
-	o.WithSendDataURLValues(u)
+	o.WithBodyDataURLValues(u)
 	assert.Equal(t, u.Encode(), string(o.sendData), "Send data not set correctly")
 }

@@ -231,7 +231,7 @@ func TestSend(t *testing.T) {
 			o.WithQueryDataString(*test.qdata)
 		}
 		if test.postdata != nil {
-			o.WithSendDataString(*test.postdata)
+			o.WithBodyDataString(*test.postdata)
 		}
 
 		//Test without a response data target first

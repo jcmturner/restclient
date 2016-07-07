@@ -1,6 +1,7 @@
 package restclient
 
 import (
+	"encoding/json"
 	"net/url"
 	"reflect"
 )
@@ -55,20 +56,26 @@ func (o *Operation) WithPath(p string) *Operation {
 }
 
 // Add some post data to the Operation by providing a string
-func (o *Operation) WithSendDataString(d string) *Operation {
+func (o *Operation) WithBodyDataString(d string) *Operation {
 	o.sendData = []byte(d)
 	return o
 }
 
 // Add some post data to the Operation by providing a byte array
-func (o *Operation) WithSendDataByteArray(d []byte) *Operation {
+func (o *Operation) WithBodyDataByteArray(d []byte) *Operation {
 	o.sendData = d
 	return o
 }
 
 // Add some post data to the Operation by providing a url.Values type
-func (o *Operation) WithSendDataURLValues(d url.Values) *Operation {
+func (o *Operation) WithBodyDataURLValues(d url.Values) *Operation {
 	o.sendData = []byte(d.Encode())
+	return o
+}
+
+// Add some post data to the Operation by providing a struct instance that will be marshaled into JSON
+func (o *Operation) WithBodyDataStruct(d interface{}) *Operation {
+	o.sendData, _ = json.Marshal(d)
 	return o
 }
 
