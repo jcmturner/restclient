@@ -4,8 +4,10 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"net/http"
+	"strings"
 )
 
 // A Config specifies the details needed to connect to a ReST service
@@ -38,8 +40,9 @@ func (c *Config) WithPassword(p string) *Config {
 
 //Specify the URL endpoint of the ReST service in the form http(s)://hostname:port
 func (c *Config) WithEndPoint(e string) *Config {
-	//TODO put in validation that is starts either http:// or https://
-	c.EndPoint = &e
+	if strings.HasPrefix(e, "http://") || strings.HasPrefix(e, "https://") {
+		c.EndPoint = &e
+	}
 	return c
 }
 
@@ -88,6 +91,23 @@ func (c *Config) WithCAFilePath(caFilePath string) *Config {
 func (c *Config) WithHTTPClient(client http.Client) *Config {
 	c.HTTPClient = &client
 	return c
+}
+
+func (c *Config) Validate() error {
+	var msg string
+	if c.EndPoint == nil {
+		msg += "Endpoint not defined; "
+	}
+	if c.UserId != nil && c.Password == nil {
+		msg += "UserId defined by no password set; "
+	}
+	if strings.HasPrefix(*c.EndPoint, "https://") && c.TrustCACert == nil {
+		msg += "HTTPS endpoint defined but no trust certificate set; "
+	}
+	if msg != "" {
+		return errors.New("ReST Client Config validation failed: " + msg)
+	}
+	return nil
 }
 
 func Load(cfgPath string) *Config {
