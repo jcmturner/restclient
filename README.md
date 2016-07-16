@@ -2,6 +2,8 @@
 
 This library can be used in Golang projects to simplify and standardise interacting with ReST services.
 
+[![GoDoc](https://godoc.org/github.com/jcmturner/restclient?status.svg)](https://godoc.org/github.com/jcmturner/restclient)
+
 ## How to use
 
 ### Configuration
