@@ -62,7 +62,7 @@ func BuildRequest(c *Config, o *Operation) (r *Request, err error) {
 	HTTPReq.URL.RawQuery = o.queryData
 	HTTPReq.Close = true
 	HTTPReq.Header.Set("Content-Type", "application/json")
-	HTTPReq.Header.Set("Accept", "application/json")
+	HTTPReq.Header.Set("Accept-Encoding", "application/json")
 	if c.UserId != nil {
 		if c.Password == nil {
 			var password string
