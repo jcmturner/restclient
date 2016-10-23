@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"fmt"
 )
 
 type RequestBuilder interface {
@@ -50,19 +51,20 @@ func BuildRequest(c *Config, o *Operation) (r *Request, err error) {
 	default:
 		method = "GET"
 	}
-	//Set the post data
-	HTTPReq, err := http.NewRequest(method, "", bytes.NewBuffer(o.sendData))
+
+	service, err := url.Parse(e + p)
 	if err != nil {
 		return
 	}
-	HTTPReq.URL, err = url.Parse(e + p)
+	fmt.Println(string(o.sendData))
+	HTTPReq, err := http.NewRequest(method, service.String(), bytes.NewReader(o.sendData))
 	if err != nil {
 		return
 	}
+
 	HTTPReq.URL.RawQuery = o.queryData
 	HTTPReq.Close = true
 	HTTPReq.Header.Set("Content-Type", "application/json")
-	HTTPReq.Header.Set("Accept-Encoding", "application/json")
 	if c.UserId != nil {
 		if c.Password == nil {
 			var password string
@@ -81,6 +83,7 @@ func BuildRequest(c *Config, o *Operation) (r *Request, err error) {
 
 // Send the request to the ReST service and marshal any response data into the struct defined in the Operation.
 func Send(r *Request) (httpCode *int, err error) {
+	fmt.Printf("%+v\n", r.HTTPRequest)
 	r.HTTPResponse, err = r.Config.HTTPClient.Do(r.HTTPRequest)
 	if err != nil {
 		code := http.StatusServiceUnavailable
