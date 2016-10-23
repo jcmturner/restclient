@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"fmt"
 )
 
 type RequestBuilder interface {
@@ -56,7 +55,6 @@ func BuildRequest(c *Config, o *Operation) (r *Request, err error) {
 	if err != nil {
 		return
 	}
-	fmt.Println(string(o.sendData))
 	HTTPReq, err := http.NewRequest(method, service.String(), bytes.NewReader(o.sendData))
 	if err != nil {
 		return
@@ -83,7 +81,6 @@ func BuildRequest(c *Config, o *Operation) (r *Request, err error) {
 
 // Send the request to the ReST service and marshal any response data into the struct defined in the Operation.
 func Send(r *Request) (httpCode *int, err error) {
-	fmt.Printf("%+v\n", r.HTTPRequest)
 	r.HTTPResponse, err = r.Config.HTTPClient.Do(r.HTTPRequest)
 	if err != nil {
 		code := http.StatusServiceUnavailable
