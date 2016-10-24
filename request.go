@@ -6,6 +6,9 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"io/ioutil"
+	"errors"
+	"fmt"
 )
 
 type RequestBuilder interface {
@@ -92,11 +95,18 @@ func Send(r *Request) (httpCode *int, err error) {
 
 	defer r.HTTPResponse.Body.Close()
 	var dec *json.Decoder
+	var bodyBytes []byte
 	if r.HTTPResponse.ContentLength > 0 {
-		dec = json.NewDecoder(io.LimitReader(r.HTTPResponse.Body, r.HTTPResponse.ContentLength))
+		bodyBytes, _ = ioutil.ReadAll(io.LimitReader(r.HTTPResponse.Body, r.HTTPResponse.ContentLength))
 	} else {
-		dec = json.NewDecoder(r.HTTPResponse.Body)
+		bodyBytes, _ = ioutil.ReadAll(r.HTTPResponse.Body)
 	}
-	dec.Decode(r.Operation.responsePtr)
+	dec = json.NewDecoder(bytes.NewReader(bodyBytes))
+	err = dec.Decode(r.Operation.responsePtr)
+	if err != nil {
+		err = errors.New(fmt.Sprintf("Failed to decode response into object: %+v. Response was %v", err, string(bodyBytes)))
+	}
+	//fmt.Printf("Response: %v\n", string(bodyBytes))
+	//fmt.Printf("marshalled: %+v\n", r.Operation.responsePtr)
 	return
 }
