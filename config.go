@@ -98,6 +98,9 @@ func (c *Config) Validate() error {
 	if c.EndPoint == nil {
 		msg += "Endpoint not defined; "
 	}
+	if !strings.HasPrefix(*c.EndPoint, "http://") && !strings.HasPrefix(*c.EndPoint, "https://") {
+		msg += "Endpoint is neither http:// nor https://"
+	}
 	if c.UserId != nil && c.Password == nil {
 		msg += "UserId defined by no password set; "
 	}
