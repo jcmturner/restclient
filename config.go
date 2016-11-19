@@ -5,6 +5,8 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"errors"
+	"fmt"
+	multierror "github.com/hashicorp/go-multierror"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -17,6 +19,7 @@ type Config struct {
 	EndPoint    *string
 	TrustCACert *string
 	HTTPClient  *http.Client
+	configErr   error
 }
 
 // Create new, blank ReST client config
@@ -42,6 +45,8 @@ func (c *Config) WithPassword(p string) *Config {
 func (c *Config) WithEndPoint(e string) *Config {
 	if strings.HasPrefix(e, "http://") || strings.HasPrefix(e, "https://") {
 		c.EndPoint = &e
+	} else {
+		c.configErr = multierror.Append(c.configErr, errors.New("Endpoint is neither http:// nor https://"))
 	}
 	return c
 }
@@ -51,7 +56,7 @@ func (c *Config) WithEndPoint(e string) *Config {
 func (c *Config) WithCACert(cert *x509.Certificate) *Config {
 	// Set up our own certificate pool
 	if len(cert.Raw) == 0 {
-		panic("Certifcate provided is empty")
+		c.configErr = multierror.Append(c.configErr, errors.New("CA Certifcate provided is empty"))
 	}
 	tlsConfig := &tls.Config{RootCAs: x509.NewCertPool()}
 	transport := &http.Transport{TLSClientConfig: tlsConfig}
@@ -77,13 +82,12 @@ func (c *Config) WithCAFilePath(caFilePath string) *Config {
 	// Load our trusted certificate path
 	pemData, err := ioutil.ReadFile(caFilePath)
 	if err != nil {
-		panic(err)
+		c.configErr = multierror.Append(c.configErr, fmt.Errorf("CA certificate could not be read from file; %v", err))
 	}
 	ok := tlsConfig.RootCAs.AppendCertsFromPEM(pemData)
 	if !ok {
-		panic("Couldn't load PEM data")
+		c.configErr = multierror.Append(c.configErr, fmt.Errorf("CA certificate could not be loaded from file, is it PEM format? %v", err))
 	}
-
 	return c
 }
 
@@ -93,36 +97,35 @@ func (c *Config) WithHTTPClient(client http.Client) *Config {
 	return c
 }
 
-func (c *Config) Validate() error {
-	var msg string
-	if c.EndPoint == nil {
-		msg += "Endpoint not defined; "
+func (c *Config) Validate() (validateErr error) {
+	if c.configErr != nil {
+		// An error has been added to the config object at some point
+		validateErr = multierror.Append(validateErr, c.configErr)
 	}
-	if !strings.HasPrefix(*c.EndPoint, "http://") && !strings.HasPrefix(*c.EndPoint, "https://") {
-		msg += "Endpoint is neither http:// nor https://"
+	if c.EndPoint == nil {
+		validateErr = multierror.Append(validateErr, errors.New("Endpoint not defined"))
+	} else {
+		if !strings.HasPrefix(*c.EndPoint, "http://") && !strings.HasPrefix(*c.EndPoint, "https://") {
+			validateErr = multierror.Append(validateErr, errors.New("Endpoint is neither http:// nor https://"))
+		} else if strings.HasPrefix(*c.EndPoint, "https://") && c.TrustCACert == nil {
+			validateErr = multierror.Append(validateErr, errors.New("HTTPS endpoint defined but no trust certificate set"))
+		}
 	}
 	if c.UserId != nil && c.Password == nil {
-		msg += "UserId defined by no password set; "
+		validateErr = multierror.Append(validateErr, errors.New("UserId defined by no password set"))
 	}
-	if strings.HasPrefix(*c.EndPoint, "https://") && c.TrustCACert == nil {
-		msg += "HTTPS endpoint defined but no trust certificate set; "
-	}
-	if msg != "" {
-		return errors.New("ReST Client Config validation failed: " + msg)
-	}
-	return nil
+	return
 }
 
 func Load(cfgPath string) *Config {
+	var c Config
 	j, err := ioutil.ReadFile(cfgPath)
 	if err != nil {
-		panic("Configuration file could not be openned: " + cfgPath + " " + err.Error())
+		c.configErr = multierror.Append(c.configErr, fmt.Errorf("Configuration file could not be openned; %v", err))
 	}
-
-	var c Config
 	err = json.Unmarshal(j, &c)
 	if err != nil {
-		panic("Configuration file could not be parsed: " + err.Error())
+		c.configErr = multierror.Append(c.configErr, fmt.Errorf("Configuration file could not be parsed; %v", err))
 	}
 	c.HTTPClient = http.DefaultClient
 	if c.TrustCACert != nil {

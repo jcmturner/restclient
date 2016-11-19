@@ -2,6 +2,7 @@ package restclient
 
 import (
 	"crypto/x509"
+	"encoding/json"
 	"encoding/pem"
 	"fmt"
 	"github.com/stretchr/testify/assert"
@@ -21,8 +22,14 @@ func TestConfig_NewConfig(t *testing.T) {
 func TestConfig_WithEndPoint(t *testing.T) {
 	var c Config
 	ep := "http://endpoint"
+	invalidEp := "ftp://endpoint"
+
 	a := c.WithEndPoint(ep)
 	assert.Equal(t, ep, *a.EndPoint, "Endpoint not as expected")
+	assert.Nil(t, a.configErr, "Configuration error is not nil when providing a endpoint")
+
+	a = c.WithEndPoint(invalidEp)
+	assert.NotNil(t, a.configErr, "An invalid endpoint did not create an error in the configuration")
 }
 
 func TestConfig_WithPassword(t *testing.T) {
@@ -62,6 +69,7 @@ func TestConfig_WithCACert(t *testing.T) {
 
 	var c Config
 	a := c.WithCACert(cert)
+	assert.Nil(t, a.configErr, "Configuration error is not nil when providing a valid certificate")
 	transport := a.HTTPClient.Transport
 	assert.Equal(t, certPool, transport.(*http.Transport).TLSClientConfig.RootCAs, "Certificate not set to be trusted in HTTP Client")
 }
@@ -72,22 +80,104 @@ func TestConfig_WithCAFilePath(t *testing.T) {
 	}))
 	defer s.Close()
 
-	//Get certifcate from test TLS server, output in PEM format to file
+	//Get certificate from test TLS server, output in PEM format to file
 	certBytes := s.TLS.Certificates[0].Certificate[0]
 	cert, _ := x509.ParseCertificate(certBytes)
 	//Have to add test cert into a certPool to compare in the assertion as this is all we can get back from the TLSClientConfig of the http.Client and certPool has no public mechanism to extract certs from it
 	certPool := x509.NewCertPool()
 	certPool.AddCert(cert)
 
-	//Get certifcate from test TLS server, output in PEM format to file
+	//Get certificate from test TLS server, output in PEM format to file
 	certOut, _ := ioutil.TempFile(os.TempDir(), "prefix")
 	defer os.Remove(certOut.Name())
 	pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: certBytes})
 
 	var c Config
 	a := c.WithCAFilePath(certOut.Name())
+	assert.Nil(t, a.configErr, "Configuration error is not nil when providing a valid certificate file")
 	transport := a.HTTPClient.Transport
 	assert.Equal(t, certPool, transport.(*http.Transport).TLSClientConfig.RootCAs, "Certificate not set to be trusted in HTTP Client")
+
+	invalidPEM, _ := ioutil.TempFile(os.TempDir(), "validcert")
+	defer os.Remove(invalidPEM.Name())
+	invalidPEM.Write([]byte("This is not valid PEM data"))
+	a = c.WithCAFilePath(invalidPEM.Name())
+	assert.NotNil(t, a.configErr, "An invalid CA file did not create an error in the configuration")
+}
+
+func TestConfig_Validate(t *testing.T) {
+	s := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintln(w, "Hello")
+	}))
+	defer s.Close()
+
+	//Get certificate from test TLS server, output in PEM format to file
+	certBytes := s.TLS.Certificates[0].Certificate[0]
+	cert, _ := x509.ParseCertificate(certBytes)
+	//Have to add test cert into a certPool to compare in the assertion as this is all we can get back from the TLSClientConfig of the http.Client and certPool has no public mechanism to extract certs from it
+	certPool := x509.NewCertPool()
+	certPool.AddCert(cert)
+
+	//Get certificate from test TLS server, output in PEM format to file
+	certOut, _ := ioutil.TempFile(os.TempDir(), "prefix")
+	defer os.Remove(certOut.Name())
+	pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: certBytes})
+
+	validSimple := `{
+		"EndPoint": "http://testurl"
+	}`
+	validUserDetails := `{
+		"UserId": "testuser",
+		"Password": "password",
+		"EndPoint": "http://testurl"
+	}`
+	validTLS := fmt.Sprintf(`{
+		"UserId": "testuser",
+		"Password": "password",
+		"EndPoint": "https://testurl",
+		"TrustCACert": "%s"
+	}`, certOut.Name())
+	invalidSimple := `{
+		"EndPoint": "ftp://testurl"
+	}`
+	invalidNoEndpoint := `{
+		"UserId": "testuser",
+		"Password": "password"
+	}`
+	invalidUserDetails := `{
+		"UserId": "testuser",
+		"EndPoint": "http://testurl"
+	}`
+	invalidTLS := `{
+		"UserId": "testuser",
+		"Password": "password",
+		"EndPoint": "https://testurl"
+	}`
+	var tests = []struct {
+		cfgJson *string
+		valid   bool
+	}{
+		{&validSimple, true},
+		{&validUserDetails, true},
+		{&validTLS, true},
+		{&invalidNoEndpoint, false},
+		{&invalidSimple, false},
+		{&invalidUserDetails, false},
+		{&invalidTLS, false},
+	}
+	for _, test := range tests {
+		var c Config
+		e := json.Unmarshal([]byte(*test.cfgJson), &c)
+		if e != nil {
+			t.Fatalf("Tests are broken, could not parse test data: %v\nerror: %v", *test.cfgJson, e)
+		}
+		err := c.Validate()
+		if test.valid {
+			assert.Nil(t, err, "Configuration was valid but Validate method returned an error")
+		} else {
+			assert.NotNil(t, err, "Configuration was not valid but Validation method did not return an error")
+		}
+	}
 }
 
 func TestConfig_Load(t *testing.T) {
