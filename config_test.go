@@ -88,7 +88,7 @@ func TestConfig_WithCAFilePath(t *testing.T) {
 	certPool.AddCert(cert)
 
 	//Get certificate from test TLS server, output in PEM format to file
-	certOut, _ := ioutil.TempFile(os.TempDir(), "prefix")
+	certOut, _ := ioutil.TempFile(os.TempDir(), "restclient-TestConfig_WithCAFilePath")
 	defer os.Remove(certOut.Name())
 	pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: certBytes})
 
@@ -119,7 +119,7 @@ func TestConfig_Validate(t *testing.T) {
 	certPool.AddCert(cert)
 
 	//Get certificate from test TLS server, output in PEM format to file
-	certOut, _ := ioutil.TempFile(os.TempDir(), "prefix")
+	certOut, _ := ioutil.TempFile(os.TempDir(), "restclient-TestConfig_Validate")
 	defer os.Remove(certOut.Name())
 	pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: certBytes})
 
