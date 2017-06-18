@@ -53,6 +53,25 @@ func (c *Config) WithEndPoint(e string) *Config {
 	return c
 }
 
+// Add a trusted x509 certificate pool to the configuration.
+// If the ReST service implements TLS/SSL then certificates signed by CA certificates in this pool will be trusted.
+func (c *Config) WithCACertPool(cp *x509.CertPool) *Config {
+	if c.HTTPClient == nil {
+		c.HTTPClient = http.DefaultClient
+	}
+	if transport, ok := c.HTTPClient.Transport.(*http.Transport); ok {
+		transport.TLSClientConfig = &tls.Config{RootCAs: cp}
+		c.HTTPClient.Transport = transport
+		return c
+	} else {
+		tlsConfig := &tls.Config{RootCAs: cp}
+		transport := &http.Transport{TLSClientConfig: tlsConfig}
+		c.HTTPClient.Transport = transport
+		return c
+	}
+	return c
+}
+
 // Add a trusted x509 certificate to the configuration.
 // If the ReST service implements TLS/SSL then certificates signed by this CA certificate will be trusted.
 func (c *Config) WithCACert(cert *x509.Certificate) *Config {
@@ -60,37 +79,25 @@ func (c *Config) WithCACert(cert *x509.Certificate) *Config {
 	if len(cert.Raw) == 0 {
 		c.configErr = multierror.Append(c.configErr, errors.New("CA Certifcate provided is empty"))
 	}
-	tlsConfig := &tls.Config{RootCAs: x509.NewCertPool()}
-	transport := &http.Transport{TLSClientConfig: tlsConfig}
-	if c.HTTPClient == nil {
-		c.HTTPClient = http.DefaultClient
-	}
-	c.HTTPClient.Transport = transport
-	tlsConfig.RootCAs.AddCert(cert)
-	return c
+	cp := x509.NewCertPool()
+	cp.AddCert(cert)
+	return c.WithCACertPool(cp)
 }
 
 // Add a trusted x509 certificate to the configuration by specifying a path to a PEM format certificate file.
 // If the ReST service implements TLS/SSL then certificates signed by this CA certificate will be trusted.
 func (c *Config) WithCAFilePath(caFilePath string) *Config {
-	// Set up our own certificate pool
-	c.TrustCACert = &caFilePath
-	tlsConfig := &tls.Config{RootCAs: x509.NewCertPool()}
-	transport := &http.Transport{TLSClientConfig: tlsConfig}
-	if c.HTTPClient == nil {
-		c.HTTPClient = http.DefaultClient
-	}
-	c.HTTPClient.Transport = transport
+	cp := x509.NewCertPool()
 	// Load our trusted certificate path
 	pemData, err := ioutil.ReadFile(caFilePath)
 	if err != nil {
 		c.configErr = multierror.Append(c.configErr, fmt.Errorf("CA certificate could not be read from file; %v", err))
 	}
-	ok := tlsConfig.RootCAs.AppendCertsFromPEM(pemData)
+	ok := cp.AppendCertsFromPEM(pemData)
 	if !ok {
 		c.configErr = multierror.Append(c.configErr, fmt.Errorf("CA certificate could not be loaded from file, is it PEM format? %v", err))
 	}
-	return c
+	return c.WithCACertPool(cp)
 }
 
 //Override with a specific http.Client to be used for the connection to the ReST service.
