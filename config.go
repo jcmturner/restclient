@@ -24,8 +24,10 @@ type Config struct {
 
 // Create new, blank ReST client config
 func NewConfig() *Config {
+	cl := http.DefaultClient
+	cl.Transport = http.DefaultTransport
 	return &Config{
-		HTTPClient: http.DefaultClient,
+		HTTPClient: cl,
 	}
 }
 
