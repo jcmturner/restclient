@@ -14,12 +14,12 @@ import (
 
 // A Config specifies the details needed to connect to a ReST service
 type Config struct {
-	UserId      *string
-	Password    *string
+	UserId      *string `json:"UserId,omitempty"`
+	Password    *string `json:"Password,omitempty"`
 	EndPoint    *string
 	TrustCACert *string
-	HTTPClient  *http.Client
-	configErr   error
+	HTTPClient  *http.Client `json:"-"`
+	configErr   error        `json:"-"`
 }
 
 // Create new, blank ReST client config
